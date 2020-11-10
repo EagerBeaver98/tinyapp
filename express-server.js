@@ -11,7 +11,11 @@ const generateRandomString = () => {
 
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  urlDatabase[generateRandomString()] = req.body.longURL;
+  // Respond with 'Ok' (we will replace this)
+  const keys = Object.keys(urlDatabase);
+  const key = keys[keys.length - 1];
+  res.redirect(`/urls/${key}`);
 });
 
 app.set("view engine", "ejs");
@@ -38,6 +42,11 @@ app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[shortURL] };
   res.render("urls_show", templateVars);
+});
+
+app.get("/u/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  res.redirect(urlDatabase[shortURL]);
 });
 
 app.get("/urls.json", (req, res) => {
