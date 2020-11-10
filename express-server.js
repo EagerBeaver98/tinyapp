@@ -57,6 +57,12 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+app.post("/urls/:shortURL/delete", (req, res) => {
+  console.log(`Request to delete URL ${req.params.shortURL}`);
+  delete urlDatabase[req.params.shortURL];
+  res.redirect("/urls");
+});
+
 app.listen(PORT, () => {
   console.log(`Example app is listening on port: ${PORT}`);
 });
