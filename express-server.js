@@ -14,9 +14,7 @@ const generateRandomString = () => {
 };
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
   urlDatabase[generateRandomString()] = req.body.longURL;
-  // Respond with 'Ok' (we will replace this)
   const keys = Object.keys(urlDatabase);
   const key = keys[keys.length - 1];
   res.redirect(`/urls/${key}`);
@@ -43,7 +41,7 @@ const users = {
 };
 
 const generateUserID = () => {
-  return Math.random().toString(36).substr(2, 6);
+  return Math.random().toString(36).substr(2, 5);
 };
 
 app.get("/", (req, res) => {
@@ -59,9 +57,17 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { userID: req.cookies["userID"],
-  };
-  res.render("urls_new", templateVars);
+  const keys = Object.keys(users);
+  for (const key of keys) {
+    if (users[key].id === req.cookies["userID"]) {
+      const templateVars = { userID: req.cookies["userID"],
+      };
+      res.render("urls_new", templateVars);
+      return;
+    }
+  }
+  return res.redirect("/urls");
+  
 });
 
 app.get("/urls/:shortURL", (req, res) => {
