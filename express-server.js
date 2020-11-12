@@ -14,17 +14,18 @@ const generateRandomString = () => {
 };
 
 app.post("/urls", (req, res) => {
-  urlDatabase[generateRandomString()] = req.body.longURL;
+  urlDatabase[generateRandomString()] = { longURL: req.body.longURL, userID: users[req.cookies["userID"]].id };
   const keys = Object.keys(urlDatabase);
   const key = keys[keys.length - 1];
+  console.log(urlDatabase)
   res.redirect(`/urls/${key}`);
 });
 
 app.set("view engine", "ejs");
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b2xVn2: { longURL: "http://www.lighthouselabs.ca", userID: "meeeee" },
+  tsm5xK: { longURL: "http://www.google.com", userID: "meeeee" },
 };
 
 const users = {
@@ -60,7 +61,7 @@ app.get("/urls/new", (req, res) => {
   const keys = Object.keys(users);
   for (const key of keys) {
     if (users[key].id === req.cookies["userID"]) {
-      const templateVars = { userID: req.cookies["userID"],
+      const templateVars = { userID: users[req.cookies["userID"]],
       };
       res.render("urls_new", templateVars);
       return;
@@ -71,15 +72,14 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[shortURL], userID: req.cookies["userID"],
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, userID: users[req.cookies["userID"]],
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  res.redirect(urlDatabase[shortURL]);
+  res.redirect(urlDatabase[shortURL].longURL);
 });
 
 app.get("/urls.json", (req, res) => {
@@ -123,9 +123,9 @@ app.post("/login", (req, res) => {
 
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL.replace(":");
-  console.log(`${urlDatabase[shortURL]} replaced by:`);
-  urlDatabase[shortURL] = req.body.url;
-  console.log(urlDatabase[shortURL]);
+  console.log(`${urlDatabase[shortURL].longURL} replaced by:`);
+  urlDatabase[shortURL].longURL = req.body.url;
+  console.log(urlDatabase[shortURL].longURL);
   res.redirect(`/urls`);
 });
 
