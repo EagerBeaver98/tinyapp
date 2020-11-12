@@ -34,6 +34,11 @@ const users = {
     id: "userRandomID",
     email: "user@example.com",
     password: "password",
+  },
+  "meeeee": {
+    id: "meeeee",
+    email: "iam@email.com",
+    password: "password",
   }
 };
 
@@ -85,6 +90,12 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+app.get("/login", (req, res) => {
+  const templateVars = { userID: req.cookies["userID"],
+  };
+  res.render("urls_login", templateVars);
+});
+
 app.post("/urls/:shortURL/delete", (req, res) => {
   console.log(`Request to delete URL ${req.params.shortURL}`);
   delete urlDatabase[req.params.shortURL];
@@ -92,8 +103,16 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("userID", users["userID"]["id"]);
-  res.redirect('/urls');
+  const id = Object.keys(users);
+  for (const idNum of id) {
+    if (users[idNum].email === req.body["email"] && users[idNum].password === req.body["password"]) {
+      res.cookie("userID", users[idNum].id);
+      return res.redirect('/urls');
+    }
+  }
+  res.status(404);
+  res.send("Login failed. Ensure email address and password are correct.");
+  return;
 });
 
 app.post("/urls/:shortURL", (req, res) => {
