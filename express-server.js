@@ -17,7 +17,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[generateRandomString()] = { longURL: req.body.longURL, userID: users[req.cookies["userID"]].id };
   const keys = Object.keys(urlDatabase);
   const key = keys[keys.length - 1];
-  console.log(urlDatabase)
+  console.log(urlDatabase);
   res.redirect(`/urls/${key}`);
 });
 
@@ -49,9 +49,20 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+const urlsForUser = (id) => {
+  const temp = {};
+  for (const URL in urlDatabase) {
+    if (urlDatabase[URL].userID === id) {
+      temp[URL] = urlDatabase[URL];
+    }
+  }
+  return temp;
+};
+
 app.get("/urls", (req, res) => {
+  const userURLs = urlsForUser(req.cookies["userID"]);
   const templateVars = {
-    urls: urlDatabase,
+    urls: userURLs,
     userID: users[req.cookies["userID"]],
   };
   res.render("urls_index", templateVars);
