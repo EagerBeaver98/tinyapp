@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/EagerBeaver98/tinyapp#readme",
   "dependencies": {
+    "bcrypt": "^5.0.0",
     "ejs": "^3.1.5",
     "express": "^4.17.1",
     "morgan": "^1.10.0"
