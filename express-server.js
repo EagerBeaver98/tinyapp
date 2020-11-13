@@ -2,22 +2,28 @@ const express = require('express');
 const app = express();
 const PORT = 8080;
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
+const cookieParser = require('cookie-parser');
+const cookieSession = require("cookie-session");
 const morgan = require("morgan");
 const bcrypt = require("bcrypt");
+const { getUserByEmail } = require('./helpers');
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'userID',
+  keys: ['keyOne', 'keyTwo'],
+}));
 app.use(morgan('dev'));
+app.use(cookieParser());
 
 const generateRandomString = () => {
   return Math.random().toString(36).substr(2, 6);
 };
 
-app.post("/urls", (req, res) => {
-  urlDatabase[generateRandomString()] = { longURL: req.body.longURL, userID: users[req.cookies["userID"]].id };
-  const keys = Object.keys(urlDatabase);
-  const key = keys[keys.length - 1];
+app.post("/urls", (req, res) => { //creates new shortened url
+  const keysOfUsers = Object.keys(users);
+  urlDatabase[generateRandomString()] = { longURL: req.body.longURL, userID: users[req.session.userID].id };
+  const key = keysOfUsers[keysOfUsers.length - 1];
   console.log(urlDatabase);
   res.redirect(`/urls/${key}`);
 });
@@ -42,7 +48,7 @@ const users = {
   }
 };
 
-const generateUserID = () => {
+const generateUserID = () => { //generates userID identifier
   return Math.random().toString(36).substr(2, 5);
 };
 
@@ -50,7 +56,7 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
-const urlsForUser = (id) => {
+const urlsForUser = (id) => { //compares id param to urlDatabase and returns object with urls assigned that ID
   const temp = {};
   for (const URL in urlDatabase) {
     if (urlDatabase[URL].userID === id) {
@@ -61,48 +67,49 @@ const urlsForUser = (id) => {
 };
 
 app.get("/urls", (req, res) => {
-  const userURLs = urlsForUser(req.cookies["userID"]);
+  const userURLs = urlsForUser(req.session.userID);
   const templateVars = {
     urls: userURLs,
-    userID: users[req.cookies["userID"]],
+    userID: users[req.session.userID],
   };
   res.render("urls_index", templateVars);
 });
 
-app.get("/urls/new", (req, res) => {
-  const keys = Object.keys(users);
-  for (const key of keys) {
-    if (users[key].id === req.cookies["userID"]) {
-      const templateVars = { userID: users[req.cookies["userID"]],
+app.get("/urls/new", (req, res) => { //creates new URL and assigns userID to URL object
+  const keysOfUsers = Object.keys(users);
+  for (const key of keysOfUsers) {
+    if (users[key].id === req.session.userID) {
+      const templateVars = { userID: users[req.session.userID],
       };
       res.render("urls_new", templateVars);
       return;
     }
   }
+  res.status(401);
   return res.redirect("/urls");
   
 });
 
-app.get("/urls/:shortURL", (req, res) => {
-  if (req.cookies["userID"] !== urlDatabase[req.params.shortURL].userID) {
+app.get("/urls/:shortURL", (req, res) => { //shows shortened url page, only viewable by owner
+  if (req.session.userID !== urlDatabase[req.params.shortURL].userID) {
     return res.redirect("/url");
   }
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, userID: users[req.cookies["userID"]],
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, userID: users[req.session.userID],
   };
   res.render("urls_show", templateVars);
 });
 
-app.get("/u/:shortURL", (req, res) => {
+app.get("/u/:shortURL", (req, res) => { //redirects to long url
   const shortURL = req.params.shortURL;
   res.redirect(urlDatabase[shortURL].longURL);
 });
 
-app.get("/urls.json", (req, res) => {
+app.get("/urls.json", (req, res) => { //return JSON file of urlDatabase
   res.json(urlDatabase);
 });
 
-app.get("/register", (req, res) => {
-  const templateVars = { userID: req.cookies["userID"],
+app.get("/register", (req, res) => { //creates a new user
+  const templateVars = { userID: users[req.session.userID],
   };
   res.render("urls_register", templateVars);
 });
@@ -112,14 +119,14 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const templateVars = { userID: req.cookies["userID"],
+  const templateVars = { userID: users[req.session.userID],
   };
   res.render("urls_login", templateVars);
 });
 
-app.post("/urls/:shortURL/delete", (req, res) => {
+app.post("/urls/:shortURL/delete", (req, res) => { //removes url from database, only accessible by userID
   console.log(`Request to delete URL ${req.params.shortURL}`);
-  if (req.cookies["userID"] !== urlDatabase[req.params.shortURL].userID) {
+  if (req.session.userID !== urlDatabase[req.params.shortURL].userID) {
     return res.redirect("/url");
   }
   delete urlDatabase[req.params.shortURL];
@@ -128,10 +135,10 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const id = Object.keys(users);
-  for (const idNum of id) {
+  const keysOfUsers = Object.keys(users);
+  for (const idNum of keysOfUsers) {
     if (users[idNum].email === req.body["email"] && bcrypt.compareSync(req.body["password"], users[idNum].password)) {
-      res.cookie("userID", users[idNum].id);
+      req.session.userID = idNum;
       return res.redirect('/urls');
     }
   }
@@ -140,7 +147,7 @@ app.post("/login", (req, res) => {
   return;
 });
 
-app.post("/urls/:shortURL", (req, res) => {
+app.post("/urls/:shortURL", (req, res) => { //edits exsisting urls
   const shortURL = req.params.shortURL.replace(":");
   console.log(`${urlDatabase[shortURL].longURL} replaced by:`);
   urlDatabase[shortURL].longURL = req.body.url;
@@ -149,7 +156,7 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("userID");
+  req.session.userID = null;
   res.redirect('/urls');
 });
 
@@ -165,7 +172,7 @@ app.post("/register", (req, res) => {
     password: bcrypt.hashSync(req.body["password"], 7)
   };
   console.log(users);
-  res.cookie("userID", newID);
+  req.session.userID = newID;
   res.redirect("/urls");
 });
 
