@@ -21,10 +21,8 @@ const generateRandomString = () => {
 };
 
 app.post("/urls", (req, res) => { //creates new shortened url
-  const keysOfUsers = Object.keys(users);
-  urlDatabase[generateRandomString()] = { longURL: req.body.longURL, userID: users[req.session.userID].id };
-  const key = keysOfUsers[keysOfUsers.length - 1];
-  console.log(urlDatabase);
+  const key = generateRandomString();
+  urlDatabase[key] = { longURL: req.body.longURL, userID: users[req.session.userID].id };
   res.redirect(`/urls/${key}`);
 });
 
@@ -91,7 +89,7 @@ app.get("/urls/new", (req, res) => { //creates new URL and assigns userID to URL
 });
 
 app.get("/urls/:shortURL", (req, res) => { //shows shortened url page, only viewable by owner
-  if (req.session.userID !== urlDatabase[req.params.shortURL].userID) {
+  if (users[req.session.userID].id !== urlDatabase[req.params.shortURL].userID) {
     return res.redirect("/url");
   }
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, userID: users[req.session.userID],
@@ -100,8 +98,7 @@ app.get("/urls/:shortURL", (req, res) => { //shows shortened url page, only view
 });
 
 app.get("/u/:shortURL", (req, res) => { //redirects to long url
-  const shortURL = req.params.shortURL;
-  res.redirect(urlDatabase[shortURL].longURL);
+  res.redirect(`http://${urlDatabase[req.params.shortURL].longURL}`);
 });
 
 app.get("/urls.json", (req, res) => { //return JSON file of urlDatabase
@@ -171,7 +168,6 @@ app.post("/register", (req, res) => {
     email: req.body["email"],
     password: bcrypt.hashSync(req.body["password"], 7)
   };
-  console.log(users);
   req.session.userID = newID;
   res.redirect("/urls");
 });
