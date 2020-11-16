@@ -89,8 +89,9 @@ app.get("/urls/new", (req, res) => { //creates new URL and assigns userID to URL
 });
 
 app.get("/urls/:shortURL", (req, res) => { //shows shortened url page, only viewable by owner
-  if (users[req.session.userID].id !== urlDatabase[req.params.shortURL].userID) {
-    return res.redirect("/url");
+  if (users[req.session.userID] === undefined || users[req.session.userID].id !== urlDatabase[req.params.shortURL].userID) {
+    res.status(401);
+    return res.send('Unauthorized to access this page.');
   }
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, userID: users[req.session.userID],
   };
@@ -98,7 +99,11 @@ app.get("/urls/:shortURL", (req, res) => { //shows shortened url page, only view
 });
 
 app.get("/u/:shortURL", (req, res) => { //redirects to long url
-  res.redirect(`http://${urlDatabase[req.params.shortURL].longURL}`);
+  if (users[req.session.userID] === undefined || users[req.session.userID].id !== urlDatabase[req.params.shortURL].userID) {
+    res.status(401);
+    return res.send("Unauthorized to acces this page.");
+  }
+  res.redirect(`${urlDatabase[req.params.shortURL].longURL}`);
 });
 
 app.get("/urls.json", (req, res) => { //return JSON file of urlDatabase
@@ -122,12 +127,10 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => { //removes url from database, only accessible by userID
-  console.log(`Request to delete URL ${req.params.shortURL}`);
-  if (req.session.userID !== urlDatabase[req.params.shortURL].userID) {
+  if (users[req.session.userID] === undefined || req.session.userID !== urlDatabase[req.params.shortURL].userID) {
     return res.redirect("/url");
   }
   delete urlDatabase[req.params.shortURL];
-  console.log(`${req.params.shortURL} deleted.`);
   res.redirect("/urls");
 });
 
@@ -145,10 +148,12 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/urls/:shortURL", (req, res) => { //edits exsisting urls
+  if (users[req.session.userID] === undefined || req.session.userID !== urlDatabase[req.params.shortURL].userID) {
+    res.status(401);
+    return res.render("Unauthorized user");
+  }
   const shortURL = req.params.shortURL.replace(":");
-  console.log(`${urlDatabase[shortURL].longURL} replaced by:`);
   urlDatabase[shortURL].longURL = req.body.url;
-  console.log(urlDatabase[shortURL].longURL);
   res.redirect(`/urls`);
 });
 
